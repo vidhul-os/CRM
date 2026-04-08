@@ -50,17 +50,16 @@ export const updateAvatar = async (req: AuthRequest, res: Response) => {
 
 export const getTeamMembers = async (req: AuthRequest, res: Response) => {
   try {
-    const orgId = req.user?.adminId || req.user?._id
-    
+    const orgId = req.user?.adminId
+
     // Find organization admin + all users under that admin
     const users = await User.find({
       $or: [
-        { _id: orgId },
         { adminId: orgId }
       ]
     })
-    .select('name role email avatar status')
-    .sort('name')
+      .select('name role email avatar status')
+      .sort('name')
 
     res.json({ data: users })
   } catch (err) {

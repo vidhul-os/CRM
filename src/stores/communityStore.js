@@ -34,7 +34,14 @@ export const useCommunityStore = create((set, get) => ({
     const { activeChat, messages } = get()
     // Standardize to matching sender/receiver
     if (msg.senderId === activeChat || msg.receiverId === activeChat) {
-      set({ messages: [...messages, msg] })
+      // Avoid duplicates
+      const exists = messages.some(m => 
+        (m._id && m._id === msg._id) || 
+        (m.content === msg.content && Math.abs(new Date(m.timestamp) - new Date(msg.timestamp)) < 1000)
+      )
+      if (!exists) {
+        set({ messages: [...messages, msg] })
+      }
     }
   }
 }))

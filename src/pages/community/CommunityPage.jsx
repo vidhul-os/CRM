@@ -72,7 +72,12 @@ export default function CommunityPage() {
 
     socket.emit('send-message', msgData)
     // Manually add to our store for instant feedback
-    addMessage({ ...msgData, senderId: user._id, timestamp: new Date() })
+    addMessage({ 
+      ...msgData, 
+      senderId: user._id, 
+      receiverId: activeChat, 
+      timestamp: new Date() 
+    })
     setMessageInput('')
   }
 

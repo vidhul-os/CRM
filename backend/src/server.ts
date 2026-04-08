@@ -113,8 +113,13 @@ const start = async () => {
           adminId
         })
         const receiverSocketId = onlineUsers.get(to)
+        const senderSocketId   = onlineUsers.get(from)
+
         if (receiverSocketId) {
           io.to(receiverSocketId).emit('receive-message', message)
+        }
+        if (senderSocketId) {
+          io.to(senderSocketId).emit('receive-message', message)
         }
       })
 
