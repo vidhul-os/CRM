@@ -30,11 +30,36 @@ export const useCommunityStore = create((set, get) => ({
     }
   },
 
+  markAsRead: async (contactId) => {
+    try {
+      await api.patch(`/messages/mark-read/${contactId}`)
+      // Update local state: messages in current view
+      set(state => ({
+        messages: state.messages.map(m => 
+          String(m.senderId) === String(contactId) ? { ...m, read: true } : m
+        )
+      }))
+    } catch (err) {
+      console.error('Failed to mark messages as read', err)
+    }
+  },
+
   addMessage: (msg) => {
     const { activeChat, messages } = get()
     // Standardize to matching sender/receiver
-    if (msg.senderId === activeChat || msg.receiverId === activeChat) {
-      set({ messages: [...messages, msg] })
+    if (String(msg.senderId) === String(activeChat) || String(msg.receiverId) === String(activeChat)) {
+      // Avoid duplicates
+      const exists = messages.some(m => 
+        (m._id && m._id === msg._id) || 
+        (m.content === msg.content && Math.abs(new Date(m.timestamp) - new Date(msg.timestamp)) < 1000)
+      )
+      if (!exists) {
+        set({ messages: [...messages, msg] })
+        // If message is from active chat and we are looking at it, mark it as read immediately
+        if (String(msg.senderId) === String(activeChat)) {
+           get().markAsRead(activeChat)
+        }
+      }
     }
   }
 }))

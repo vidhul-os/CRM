@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import { User } from '../models/User'
+import { Message } from '../models/Message'
 import { AuthRequest } from '../middlewares/auth'
 import bcrypt from 'bcryptjs'
 
@@ -51,7 +52,8 @@ export const updateAvatar = async (req: AuthRequest, res: Response) => {
 export const getTeamMembers = async (req: AuthRequest, res: Response) => {
   try {
     const orgId = req.user?.adminId || req.user?._id
-    
+    const currentUserId = req.user?._id
+
     // Find organization admin + all users under that admin
     const users = await User.find({
       $or: [
@@ -59,10 +61,37 @@ export const getTeamMembers = async (req: AuthRequest, res: Response) => {
         { adminId: orgId }
       ]
     })
-    .select('name role email avatar status')
-    .sort('name')
+      .select('name role email avatar status')
+      .sort('name')
+      .lean()
 
-    res.json({ data: users })
+    // Fetch unread counts for each member from current user's perspective
+    const unreadCounts = await Message.aggregate([
+      { 
+        $match: { 
+          receiverId: currentUserId, 
+          read: false 
+        } 
+      },
+      { 
+        $group: { 
+          _id: '$senderId', 
+          count: { $sum: 1 } 
+        } 
+      }
+    ])
+
+    const unreadMap = unreadCounts.reduce((acc: any, curr: any) => {
+      acc[curr._id.toString()] = curr.count
+      return acc
+    }, {} as Record<string, number>)
+
+    const membersWithCounts = users.map((u: any) => ({
+      ...u,
+      unreadCount: unreadMap[u._id.toString()] || 0
+    }))
+
+    res.json({ data: membersWithCounts })
   } catch (err) {
     res.status(500).json({ message: (err as Error).message })
   }

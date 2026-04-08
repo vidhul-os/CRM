@@ -56,6 +56,7 @@ export const deleteRole = async (req: Request, res: Response) => {
 
 export const getUsers = async (req: AuthRequest, res: Response) => {
   try {
+    console.log(req.user,'--------')
     const users = await User.find({ adminId: req.user?.adminId })
       .select('-password -refreshToken -passwordResetOtp -otpCode')
       .sort('-createdAt')
