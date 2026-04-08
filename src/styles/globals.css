@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-soft: rgba(59, 130, 246, 0.1);
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #0f172a;
+  --surface-bg: #f8fafc;
+  --text-main: #0f172a;
+  --border-color: #e2e8f0;
+  --muted-color: #64748b;
+  --card-bg: #ffffff;
+}
+
+.dark {
+  --sidebar-bg: #020617;
+  --sidebar-text: #f8fafc;
+  --surface-bg: #0f172a;
+  --text-main: #f8fafc;
+  --border-color: #1e293b;
+  --muted-color: #94a3b8;
+  --card-bg: #1e293b;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-surface text-sidebar transition-colors duration-300;
+  }
+}
+
+/* Custom transitions */
+.transition-sidebar {
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scrollbar tweaks */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full hover:bg-muted transition-colors;
+}
+
+/* Kanban board height constraint */
+.kanban-container {
+  height: calc(100vh - 65px);
+  /* Header height approx */
+}
