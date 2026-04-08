@@ -9,7 +9,6 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     const adminId = req.user?.adminId || req.user?._id
 
     const messages = await Message.find({
-      adminId,
       $or: [
         { senderId: req.user?._id, receiverId: contactId },
         { senderId: contactId, receiverId: req.user?._id }
@@ -58,5 +57,21 @@ export const getRecentChats = async (req: AuthRequest, res: Response) => {
     res.json({ data: recentMessages });
   } catch (err) {
     res.status(500).json({ message: (err as Error).message });
+  }
+}
+
+export const markMessagesAsRead = async (req: AuthRequest, res: Response) => {
+  try {
+    const { contactId } = req.params
+    const userId = req.user?._id
+
+    await Message.updateMany(
+      { senderId: contactId, receiverId: userId, read: false },
+      { $set: { read: true } }
+    )
+
+    res.json({ message: 'Messages marked as read' })
+  } catch (err) {
+    res.status(500).json({ message: (err as Error).message })
   }
 }

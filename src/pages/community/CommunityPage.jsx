@@ -20,7 +20,8 @@ export default function CommunityPage() {
     messages, 
     fetchMessages, 
     setActiveChat, 
-    addMessage 
+    addMessage,
+    markAsRead
   } = useCommunityStore()
 
   const messagesEndRef = useRef(null)
@@ -30,7 +31,7 @@ export default function CommunityPage() {
     const fetchMembers = async () => {
       try {
         const res = await api.get('/users/team-members')
-        setMembers(res.data.data.filter(u => u._id !== user?._id))
+        setMembers(res.data.data.filter(u => String(u._id) !== String(user?._id)))
       } catch (err) {
         console.error('Failed to fetch team members', err)
       }
@@ -42,8 +43,13 @@ export default function CommunityPage() {
   useEffect(() => {
     if (activeChat) {
       fetchMessages(activeChat)
+      markAsRead(activeChat)
+      // also update local members count
+      setMembers(prev => prev.map(m => 
+        String(m._id) === String(activeChat) ? { ...m, unreadCount: 0 } : m
+      ))
     }
-  }, [activeChat, fetchMessages])
+  }, [activeChat, fetchMessages, markAsRead])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -55,9 +61,34 @@ export default function CommunityPage() {
     if (!socket) return
     socket.on('receive-message', (msg) => {
       addMessage(msg)
+      
+      // Update unread counts for sidebar if not the active chat
+      if (String(msg.senderId) !== String(activeChat)) {
+        setMembers(prev => prev.map(m => 
+          String(m._id) === String(msg.senderId) 
+            ? { ...m, unreadCount: (m.unreadCount || 0) + 1 } 
+            : m
+        ))
+        
+        // Show browser notification
+        if (Notification.permission === 'granted') {
+          const sender = members.find(m => String(m._id) === String(msg.senderId))
+          new Notification(sender ? `New message from ${sender.name}` : 'New Message', {
+            body: msg.content,
+            icon: '/logo.png'
+          })
+        }
+      }
     })
     return () => socket.off('receive-message')
-  }, [socket, addMessage])
+  }, [socket, addMessage, activeChat, members])
+
+  // Request notification permission
+  useEffect(() => {
+    if (Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [])
 
   const handleSendMessage = (e) => {
     if (e) e.preventDefault()
@@ -135,6 +166,11 @@ export default function CommunityPage() {
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-sm text-gray-900 truncate">{member.name}</h3>
+                    {member.unreadCount > 0 && (
+                      <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                        {member.unreadCount}
+                      </span>
+                    )}
                   </div>
                   <p className="text-[10px] text-muted font-bold uppercase tracking-widest truncate">{member.role}</p>
                 </div>
@@ -188,7 +224,7 @@ export default function CommunityPage() {
                 </div>
               ) : (
                 messages.map((msg, i) => {
-                  const isMine = msg.senderId === user._id
+                  const isMine = String(msg.senderId) === String(user?._id)
                   return (
                     <div key={i} className={clsx("flex", isMine ? "justify-end" : "justify-start")}>
                       <div className={clsx(
